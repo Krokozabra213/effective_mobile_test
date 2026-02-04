@@ -1,0 +1,38 @@
+version: "2"
+
+sql:
+  - engine: "postgresql"
+    queries: "queries"
+    schema: "../goose"
+    gen:
+      go:
+        package: "sqlc"
+        out: "../../internal/repository/postgres/queries"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_prepared_queries: false
+        emit_interface: true
+        emit_exact_table_names: false
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true
+        overrides:
+          - column: "subscriptions.user_id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+
+          - column: "subscriptions.start_date"
+            go_type:
+              import: "time"
+              type: "Time"
+
+          - column: "subscriptions.end_date"
+            go_type:
+              import: "time"
+              type: "Time"
+              pointer: true
+
+          - column: "subscriptions.created_at"
+            go_type:
+              import: "time"
+              type: "Time"
