@@ -18,7 +18,7 @@ func (r *PostgresRepository) CreateSubscription(ctx context.Context, input *doma
 
 	result, err := r.Queries.CreateSubscription(ctx, sqlc.CreateSubscriptionParams{
 		ServiceName: input.ServiceName,
-		Price:       int32(input.Price),
+		Price:       input.Price,
 		UserID:      input.UserID,
 		StartDate:   input.StartDate,
 		EndDate:     input.EndDate,
@@ -167,7 +167,7 @@ func (r *PostgresRepository) DeleteSubscription(ctx context.Context, id int64) e
 }
 
 // CalculateTotalCost подсчитывает суммарную стоимость подписок за период
-func (r *PostgresRepository) CalculateTotalCost(ctx context.Context, filter domain.CostFilter) (*domain.TotalCostResult, error) {
+func (r *PostgresRepository) CalculateTotalCost(ctx context.Context, filter domain.CostFilter) (domain.TotalCost, error) {
 	const op = "repository.CalculateTotalCost"
 	log := slog.With(slog.String("op", op))
 
@@ -195,24 +195,16 @@ func (r *PostgresRepository) CalculateTotalCost(ctx context.Context, filter doma
 		args = append(args, *filter.ServiceName)
 	}
 
-	var result domain.TotalCostResult
+	var result domain.TotalCost
 	if err := r.DB.QueryRow(ctx, query, args...).Scan(&result.TotalCost, &result.Count); err != nil {
 		log.Error("failed to calculate total cost", slog.String("error", err.Error()))
-		return nil, r.handleError(err)
+		return domain.TotalCost{}, r.handleError(err)
 	}
 
-	return &result, nil
+	return result, nil
 }
 
 // toDomain конвертирует sqlc модель в domain
 func (r *PostgresRepository) toDomain(s *sqlc.Subscription) *domain.Subscription {
-	return &domain.Subscription{
-		ID:          s.ID,
-		ServiceName: s.ServiceName,
-		Price:       int(s.Price),
-		UserID:      s.UserID,
-		StartDate:   s.StartDate,
-		EndDate:     s.EndDate,
-		CreatedAt:   s.CreatedAt,
-	}
+	return domain.NewSubscription(s.ID, s.ServiceName, s.Price, s.UserID, s.StartDate, s.EndDate, s.CreatedAt)
 }

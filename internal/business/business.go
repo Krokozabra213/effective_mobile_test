@@ -1,13 +1,11 @@
-package postgres
+package business
 
 import (
 	"context"
-	"errors"
+	"log/slog"
 
 	"github.com/Krokozabra213/effective_mobile/internal/domain"
-	sqlc "github.com/Krokozabra213/effective_mobile/internal/repository/postgres/queries"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 )
 
 type SubscriptionProvider interface {
@@ -20,29 +18,16 @@ type SubscriptionProvider interface {
 	CalculateTotalCost(ctx context.Context, filter domain.CostFilter) (domain.TotalCost, error)
 }
 
-var _ SubscriptionProvider = (*PostgresRepository)(nil)
-
-type PostgresRepository struct {
-	DB      sqlc.DBTX
-	Queries sqlc.Querier
+// Business contains the core business logic and dependencies.
+type Business struct {
+	log  *slog.Logger
+	repo SubscriptionProvider
 }
 
-func NewRepository(db sqlc.DBTX) *PostgresRepository {
-	return &PostgresRepository{
-		DB:      db,
-		Queries: sqlc.New(db),
+// New creates a new Business instance with the provided dependencies.
+func New(log *slog.Logger, repo SubscriptionProvider) *Business {
+	return &Business{
+		log:  log,
+		repo: repo,
 	}
-}
-
-func (r *PostgresRepository) handleError(err error) error {
-	if err == nil {
-		return nil
-	}
-	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
-		return err
-	}
-	if errors.Is(err, pgx.ErrNoRows) {
-		return ErrNotFound
-	}
-	return ErrInternal
 }

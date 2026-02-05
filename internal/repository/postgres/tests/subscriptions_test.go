@@ -16,7 +16,7 @@ import (
 )
 
 // Хелперы для создания тестовых данных
-func createTestInput(serviceName string, price int, userID uuid.UUID) *domain.CreateSubscriptionInput {
+func createTestInput(serviceName string, price int32, userID uuid.UUID) *domain.CreateSubscriptionInput {
 	startDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	return &domain.CreateSubscriptionInput{
 		ServiceName: serviceName,
@@ -27,7 +27,7 @@ func createTestInput(serviceName string, price int, userID uuid.UUID) *domain.Cr
 	}
 }
 
-func createTestInputWithEndDate(serviceName string, price int, userID uuid.UUID, endDate time.Time) *domain.CreateSubscriptionInput {
+func createTestInputWithEndDate(serviceName string, price int32, userID uuid.UUID, endDate time.Time) *domain.CreateSubscriptionInput {
 	input := createTestInput(serviceName, price, userID)
 	input.EndDate = &endDate
 	return input
@@ -53,7 +53,7 @@ func TestCreateSubscription(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotZero(t, result.ID)
 		assert.Equal(t, "Yandex Plus", result.ServiceName)
-		assert.Equal(t, 400, result.Price)
+		assert.Equal(t, int32(400), result.Price)
 		assert.Equal(t, userID, result.UserID)
 		assert.Equal(t, input.StartDate, result.StartDate)
 		assert.Nil(t, result.EndDate)
@@ -72,7 +72,7 @@ func TestCreateSubscription(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotZero(t, result.ID)
 		assert.Equal(t, "Netflix", result.ServiceName)
-		assert.Equal(t, 800, result.Price)
+		assert.Equal(t, int32(800), result.Price)
 		require.NotNil(t, result.EndDate)
 		assert.Equal(t, endDate, *result.EndDate)
 	})
@@ -110,7 +110,7 @@ func TestGetSubscriptionByID(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, created.ID, result.ID)
 		assert.Equal(t, "Spotify", result.ServiceName)
-		assert.Equal(t, 169, result.Price)
+		assert.Equal(t, int32(169), result.Price)
 		assert.Equal(t, userID, result.UserID)
 	})
 
@@ -143,7 +143,7 @@ func TestListSubscriptions(t *testing.T) {
 
 		// Создаём 3 подписки
 		for i := 0; i < 3; i++ {
-			_, err := testRepo.CreateSubscription(ctx, createTestInput("Service"+string(rune('A'+i)), 100+i*100, uuid.New()))
+			_, err := testRepo.CreateSubscription(ctx, createTestInput("Service"+string(rune('A'+i)), int32(100+i*100), uuid.New()))
 			require.NoError(t, err)
 		}
 
@@ -262,7 +262,7 @@ func TestUpdateSubscription(t *testing.T) {
 	t.Run("update service_name", func(t *testing.T) {
 		cleanup(t)
 
-		created, _ := testRepo.CreateSubscription(ctx, createTestInput("OldName", 100, uuid.New()))
+		created, _ := testRepo.CreateSubscription(ctx, createTestInput("OldName", int32(100), uuid.New()))
 
 		result, err := testRepo.UpdateSubscription(ctx, created.ID, domain.UpdateSubscriptionInput{
 			ServiceName: ptr("NewName"),
@@ -270,7 +270,7 @@ func TestUpdateSubscription(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, "NewName", result.ServiceName)
-		assert.Equal(t, 100, result.Price) // не изменился
+		assert.Equal(t, int32(100), result.Price) // не изменился
 	})
 
 	t.Run("update price", func(t *testing.T) {
@@ -283,7 +283,7 @@ func TestUpdateSubscription(t *testing.T) {
 		})
 
 		require.NoError(t, err)
-		assert.Equal(t, 500, result.Price)
+		assert.Equal(t, int32(500), result.Price)
 		assert.Equal(t, "Service", result.ServiceName) // не изменился
 	})
 
@@ -317,7 +317,7 @@ func TestUpdateSubscription(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, "NewService", result.ServiceName)
-		assert.Equal(t, 999, result.Price)
+		assert.Equal(t, int32(999), result.Price)
 		require.NotNil(t, result.EndDate)
 		assert.Equal(t, endDate, *result.EndDate)
 	})

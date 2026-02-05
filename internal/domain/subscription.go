@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,30 +9,49 @@ import (
 type Subscription struct {
 	ID          int64
 	ServiceName string
-	Price       int
+	Price       int32
 	UserID      uuid.UUID
 	StartDate   time.Time
 	EndDate     *time.Time
 	CreatedAt   time.Time
 }
 
+func NewSubscription(id int64, serviceName string, price int32, userID uuid.UUID, start time.Time,
+	end *time.Time, createdAt time.Time,
+) *Subscription {
+	return &Subscription{
+		ID:          id,
+		ServiceName: serviceName,
+		Price:       price,
+		UserID:      userID,
+		StartDate:   start,
+		EndDate:     end,
+		CreatedAt:   createdAt,
+	}
+}
+
 type CreateSubscriptionInput struct {
-    ServiceName string
-    Price       int
-    UserID      uuid.UUID
-    StartDate   time.Time
-    EndDate     *time.Time
+	ServiceName string
+	Price       int32
+	UserID      uuid.UUID
+	StartDate   time.Time
+	EndDate     *time.Time
+}
+
+func NewCreateSubscriptionInput(service string, price int32, userID uuid.UUID, start time.Time, end *time.Time) CreateSubscriptionInput {
+	return CreateSubscriptionInput{
+		ServiceName: service,
+		Price:       price,
+		UserID:      userID,
+		StartDate:   start,
+		EndDate:     end,
+	}
 }
 
 type UpdateSubscriptionInput struct {
 	ServiceName *string
 	Price       *int
 	EndDate     *time.Time
-}
-
-type ListParams struct {
-	Limit  int32
-	Offset int32
 }
 
 type CostFilter struct {
@@ -43,21 +61,13 @@ type CostFilter struct {
 	ServiceName *string
 }
 
-type TotalCostResult struct {
+type TotalCost struct {
 	TotalCost int64
 	Count     int64
 }
 
-// ParseMonthYear парсит "07-2025" в time.Time
-func ParseMonthYear(s string) (time.Time, error) {
-	t, err := time.Parse("01-2006", s)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("invalid date format, expected MM-YYYY: %w", err)
-	}
-	return t, nil
-}
-
-// FormatMonthYear форматирует time.Time в "07-2025"
-func FormatMonthYear(t time.Time) string {
-	return t.Format("01-2006")
+// for dto and business logic
+type ListParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
 }
