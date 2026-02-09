@@ -64,3 +64,9 @@ func NewTotalCostResponse(totalCost int64, count int64) TotalCostResponse {
 		Count:     count,
 	}
 }
+
+// ListSubscriptionsResponse ответ со списком подписок
+// @Description Список подписок с пагинацией
+type ListSubscriptionsResponse struct {
+	Subscriptions []SubscriptionResponse `json:"subscriptions"`
+}

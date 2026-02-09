@@ -18,6 +18,7 @@ help:
 	@echo "  migrate-reset                        Rollback all migrations"
 	@echo "  tests                                Start tests"
 	@echo "  test-integrate                       Start intergration tests"
+	@echo "  swagger			      		      Swagger docs generate"
 
 # Start containers
 docker-up:
@@ -56,3 +57,6 @@ ci-test: docker-up
 	$(MAKE) test
 	$(MAKE) test-integrate
 	docker compose down
+
+swagger:
+	swag init -g cmd/app/main.go -o docs
