@@ -21,7 +21,7 @@ help:
 
 # Start containers
 docker-up:
-	docker compose up -d
+	docker compose up -d --wait
 
 # Stop containers
 docker-down:
@@ -50,3 +50,9 @@ test:
 # Start integration tests
 test-integrate:
 	go test -tags=integration -v ./...
+
+ci-test: docker-up
+	$(MAKE) migrate-up
+	$(MAKE) test
+	$(MAKE) test-integrate
+	docker compose down
