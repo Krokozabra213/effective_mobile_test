@@ -15,6 +15,6 @@ func parseMonthYear(s string) (time.Time, error) {
 }
 
 // FormatMonthYear форматирует time.Time в "07-2025"
-func FormatMonthYear(t time.Time) string {
+func formatMonthYear(t time.Time) string {
 	return t.Format("01-2006")
 }

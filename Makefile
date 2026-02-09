@@ -1,6 +1,6 @@
 
-PG_DSN=postgres://myuser:mypassword@localhost:5555/postgres?sslmode=disable
-MIGR_DIR=migrations/goose
+PG_DSN=postgres://myuser:mypassword@localhost:5432/postgres?sslmode=disable
+MIGR_DIR=sql/goose
 
 .PHONY: migrate-create migrate-up migrate-down migrate-status migrate-reset test-integrate
 
@@ -9,8 +9,8 @@ help:
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Targets:"
-# 	@echo "  docker-up                            Start all containers"
-# 	@echo "  docker-down                          Stop all containers"
+	@echo "  docker-up                            Start all containers"
+	@echo "  docker-down                          Stop all containers"
 	@echo "  migrate-create name=<table_name>     Create new migration file"
 	@echo "  migrate-up                           Apply all pending migrations"
 	@echo "  migrate-down                         Rollback last migration"
@@ -20,15 +20,12 @@ help:
 	@echo "  test-integrate                       Start intergration tests"
 
 # Start containers
-# docker-up:
-# 	docker compose up -d
+docker-up:
+	docker compose up -d
 
 # Stop containers
-# docker-down:
-# 	docker compose down
-
-test-integrate:
-	go test -tags=integration -v ./...
+docker-down:
+	docker compose down
 
 # Create new migration file: make migrate-create name=name_table
 migrate-create:
@@ -47,5 +44,9 @@ migrate-reset:
 	goose -dir $(MIGR_DIR) postgres "$(PG_DSN)" reset
 
 # Start tests
-# tests:
-# 	go test -v -count=1 ./tests/...
+test:
+	go test -v -count=1 ./tests/...
+
+# Start integration tests
+test-integrate:
+	go test -tags=integration -v ./...

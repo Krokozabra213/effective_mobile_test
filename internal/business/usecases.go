@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Krokozabra213/effective_mobile/internal/domain"
+	"github.com/google/uuid"
 )
 
 // CreateSubscription создаёт новую подписку
@@ -41,18 +42,41 @@ func (b *Business) GetSubscriptionByID(ctx context.Context, id int64) (*domain.S
 }
 
 // ListSubscriptions возвращает список подписок
-func (b *Business) ListSubscriptions(ctx context.Context, req domain.ListParams) ([]domain.Subscription, error) {
+func (b *Business) ListSubscriptions(ctx context.Context, params domain.ListParams) ([]domain.Subscription, error) {
 	const op = "business.ListSubscriptions"
 	start := time.Now()
 
 	log := b.log.With(
 		slog.String("op", op),
-		slog.Int("limit", int(req.Limit)),
-		slog.Int("offset", int(req.Offset)),
+		slog.Int("limit", int(params.Limit)),
+		slog.Int("offset", int(params.Offset)),
 	)
 	log.Info("process started")
 
-	subs, err := b.repo.ListSubscriptions(ctx, req)
+	subs, err := b.repo.ListSubscriptions(ctx, params)
+	if err != nil {
+		log.Error("failed to list subscriptions", slog.String("error", err.Error()))
+		return nil, b.mapError(err)
+	}
+
+	log.Info("success", slog.Int("count", len(subs)), slog.Duration("duration", time.Since(start)))
+	return subs, nil
+}
+
+// ListSubscriptionsByUserID возвращает список подписок для user
+func (b *Business) ListSubscriptionsByUserID(ctx context.Context, userID uuid.UUID, params domain.ListParams) ([]domain.Subscription, error) {
+	const op = "business.ListSubscriptionsByUserID"
+	start := time.Now()
+
+	log := b.log.With(
+		slog.String("op", op),
+		slog.String("user_id", userID.String()),
+		slog.Int("limit", int(params.Limit)),
+		slog.Int("offset", int(params.Offset)),
+	)
+	log.Info("process started")
+
+	subs, err := b.repo.ListSubscriptionsByUserID(ctx, userID, params)
 	if err != nil {
 		log.Error("failed to list subscriptions", slog.String("error", err.Error()))
 		return nil, b.mapError(err)

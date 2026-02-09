@@ -66,8 +66,7 @@ type TotalCost struct {
 	Count     int64
 }
 
-// for dto and business logic
 type ListParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Limit  int32
+	Offset int32
 }

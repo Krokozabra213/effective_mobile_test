@@ -82,6 +82,10 @@ func (r *PostgresRepository) ListSubscriptionsByUserID(ctx context.Context, user
 		return nil, r.handleError(err)
 	}
 
+    if ctx.Err()!=nil{
+        return nil,ctx.Err()
+    }
+
 	subs := make([]domain.Subscription, len(results))
 	for i, result := range results {
 		subs[i] = *r.toDomain(&result)
@@ -94,6 +98,10 @@ func (r *PostgresRepository) ListSubscriptionsByUserID(ctx context.Context, user
 func (r *PostgresRepository) UpdateSubscription(ctx context.Context, id int64, input domain.UpdateSubscriptionInput) (*domain.Subscription, error) {
 	const op = "repository.UpdateSubscription"
 	log := slog.With(slog.String("op", op), slog.Int64("id", id))
+
+    if ctx.Err()!=nil{
+        return nil,ctx.Err()
+    }
 
 	setParts := []string{}
 	args := []interface{}{}
@@ -170,6 +178,10 @@ func (r *PostgresRepository) DeleteSubscription(ctx context.Context, id int64) e
 func (r *PostgresRepository) CalculateTotalCost(ctx context.Context, filter domain.CostFilter) (domain.TotalCost, error) {
 	const op = "repository.CalculateTotalCost"
 	log := slog.With(slog.String("op", op))
+
+    if ctx.Err()!=nil{
+        return domain.TotalCost{},ctx.Err()
+    }
 
 	// Конец периода = последний день месяца
 	endPeriod := filter.EndPeriod.AddDate(0, 1, -1)

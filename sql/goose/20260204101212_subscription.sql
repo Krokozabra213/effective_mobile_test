@@ -9,9 +9,7 @@ CREATE TABLE subscriptions (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_subscriptions_user_id_created_at ON subscriptions(user_id, created_at DESC);
-
-CREATE INDEX idx_subscriptions_dates ON subscriptions(start_date, end_date);
+CREATE INDEX idx_subscriptions_cost_calc ON subscriptions (start_date, end_date, user_id, service_name) INCLUDE (price);
 
 -- +goose Down
 DROP TABLE IF EXISTS subscriptions;

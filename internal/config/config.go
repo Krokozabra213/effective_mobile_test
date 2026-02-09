@@ -2,169 +2,101 @@ package config
 
 import (
 	"log/slog"
-	"os"
 	"time"
 
+	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
-	"github.com/spf13/viper"
 )
 
-// Default values
-const (
-	defaultHTTPHost               = "0.0.0.0"
-	defaultHTTPPort               = "8080"
-	defaultHTTPWriteTimeout       = 10 * time.Second
-	defaultHTTPReadTimeout        = 10 * time.Second
-	defaultHTTPMaxHeaderMegabytes = 1
+type Config struct {
+	App  AppConfig      `yaml:"app"`
+	HTTP HTTPConfig     `yaml:"http"`
+	PG   PostgresConfig `yaml:"postgres"`
+}
 
-	defaultPGSSLMode         = "disable"
-	defaultPGConnectTimeout  = 5 * time.Second
-	defaultPGMaxConns        = 10
-	defaultPGMinConns        = 2
-	defaultPGMaxConnLifeTime = 1 * time.Hour
-	defaultPGMaxConnIdleTime = 15 * time.Minute
-)
+// AppConfig — sensitive data only from ENV
+type AppConfig struct {
+	Environment  string `env:"ENV" env-default:"development"`
+	AppSecretKey string `env:"APP_SECRET" env-required:"true"`
+}
 
-type (
-	Config struct {
-		App  AppConfig
-		HTTP HTTPConfig
-		PG   PostgresConfig
-	}
+// PostgresConfig — credentials from ENV, pool settings from YAML
+type PostgresConfig struct {
+	// Sensitive — from ENV only
+	Host     string `env:"POSTGRES_HOST" env-required:"true"`
+	Port     string `env:"POSTGRES_PORT" env-default:"5432"`
+	User     string `env:"POSTGRES_USER" env-required:"true"`
+	Password string `env:"POSTGRES_PASSWORD" env-required:"true"`
+	DBName   string `env:"POSTGRES_DB" env-required:"true"`
 
-	AppConfig struct {
-		AppSecretKey string
-		Environment  string
-	}
+	// Non-sensitive — from YAML (can override via ENV if needed)
+	SSLMode         string        `yaml:"sslMode" env:"PG_SSL_MODE" env-default:"disable"`
+	ConnectTimeout  time.Duration `yaml:"connectTimeout" env:"PG_CONNECT_TIMEOUT" env-default:"5s"`
+	MaxConns        int           `yaml:"maxConns" env:"PG_MAX_CONNS" env-default:"10"`
+	MinConns        int           `yaml:"minConns" env:"PG_MIN_CONNS" env-default:"2"`
+	MaxConnLifeTime time.Duration `yaml:"maxConnLifeTime" env:"PG_MAX_CONN_LIFETIME" env-default:"1h"`
+	MaxConnIdleTime time.Duration `yaml:"maxConnIdleTime" env:"PG_MAX_CONN_IDLE_TIME" env-default:"15m"`
+}
 
-	PostgresConfig struct {
-		Host     string
-		Port     string
-		User     string
-		Password string
-		DBName   string
+// HTTPConfig — from YAML (can override via ENV if needed)
+type HTTPConfig struct {
+	Host               string        `yaml:"host" env:"HTTP_HOST" env-default:"0.0.0.0"`
+	Port               string        `yaml:"port" env:"HTTP_PORT" env-default:"8080"`
+	ReadTimeout        time.Duration `yaml:"readTimeout" env:"HTTP_READ_TIMEOUT" env-default:"10s"`
+	WriteTimeout       time.Duration `yaml:"writeTimeout" env:"HTTP_WRITE_TIMEOUT" env-default:"10s"`
+	MaxHeaderMegabytes int           `yaml:"maxHeaderBytes" env:"HTTP_MAX_HEADER_BYTES" env-default:"1"`
+}
 
-		SSLMode         string        `mapstructure:"sslMode"`
-		ConnectTimeout  time.Duration `mapstructure:"connectTimeout"`
-		MaxConns        int           `mapstructure:"maxConns"`
-		MinConns        int           `mapstructure:"minConns"`
-		MaxConnLifeTime time.Duration `mapstructure:"maxConnLifeTime"`
-		MaxConnIdleTime time.Duration `mapstructure:"maxConnIdleTime"`
-	}
-
-	HTTPConfig struct {
-		Host               string        `mapstructure:"host"`
-		Port               string        `mapstructure:"port"`
-		ReadTimeout        time.Duration `mapstructure:"readTimeout"`
-		WriteTimeout       time.Duration `mapstructure:"writeTimeout"`
-		MaxHeaderMegabytes int           `mapstructure:"maxHeaderBytes"`
-	}
-)
-
-func newCfg() Config {
-	cfg := Config{
-		App:  AppConfig{},
-		PG:   PostgresConfig{},
-		HTTP: HTTPConfig{},
+// MustInit loads config or panics — use in main()
+func MustInit(configFile, envFile string) *Config {
+	cfg, err := Init(configFile, envFile)
+	if err != nil {
+		panic("config: " + err.Error())
 	}
 	return cfg
 }
 
-// Init loads config from file and environment variables.
-// Priority: defaults -> config file -> env vars
-func Init(configfile, envfile string) (*Config, error) {
-	populateDefault()
+// Init loads config from YAML file and ENV variables.
+// Priority: defaults -> YAML file -> ENV variables
+func Init(configFile, envFile string) (*Config, error) {
+	// 1. Load .env into os.Environ (before cleanenv reads ENV)
+	if envFile != "" {
+		if err := godotenv.Load(envFile); err != nil {
+			return nil, err
+		}
+	}
 
-	if err := parseConfigFile(configfile); err != nil {
+	var cfg Config
+
+	// 2. Read YAML + apply ENV overrides + validate required fields
+	if err := cleanenv.ReadConfig(configFile, &cfg); err != nil {
 		return nil, err
 	}
 
-	cfg := newCfg()
-
-	if err := unmarshal(&cfg); err != nil {
-		return nil, err
-	}
-
-	if err := setFromEnv(envfile, &cfg); err != nil {
-		return nil, err
-	}
 	return &cfg, nil
 }
 
-func populateDefault() {
-	// http config
-	viper.SetDefault("http.host", defaultHTTPHost)
-	viper.SetDefault("http.port", defaultHTTPPort)
-	viper.SetDefault("http.maxHeaderMegabytes", defaultHTTPMaxHeaderMegabytes)
-	viper.SetDefault("http.readTimeout", defaultHTTPReadTimeout)
-	viper.SetDefault("http.writeTimeout", defaultHTTPWriteTimeout)
-
-	// Postgres defaults
-	viper.SetDefault("postgres.sslMode", defaultPGSSLMode)
-	viper.SetDefault("postgres.connectTimeout", defaultPGConnectTimeout)
-	viper.SetDefault("postgres.maxConns", defaultPGMaxConns)
-	viper.SetDefault("postgres.minConns", defaultPGMinConns)
-	viper.SetDefault("postgres.maxConnLifeTime", defaultPGMaxConnLifeTime)
-	viper.SetDefault("postgres.maxConnIdleTime", defaultPGMaxConnIdleTime)
-}
-
-func parseConfigFile(configPath string) error {
-	viper.SetConfigFile(configPath)
-	if err := viper.ReadInConfig(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// setFromEnv loads sensitive data from environment variables
-func setFromEnv(envpath string, cfg *Config) error {
-	err := godotenv.Load(envpath)
-	if err != nil {
-		return err
-	}
-
-	cfg.App.Environment = os.Getenv("ENV")
-	cfg.App.AppSecretKey = os.Getenv("APP_SECRET")
-
-	cfg.PG.Host = os.Getenv("POSTGRES_HOST")
-	cfg.PG.Port = os.Getenv("POSTGRES_PORT")
-	cfg.PG.User = os.Getenv("POSTGRES_USER")
-	cfg.PG.DBName = os.Getenv("POSTGRES_DB")
-	cfg.PG.Password = os.Getenv("POSTGRES_PASSWORD")
-
-	return nil
-}
-
-func unmarshal(cfg *Config) error {
-	if err := viper.UnmarshalKey("http", &cfg.HTTP); err != nil {
-		return err
-	}
-
-	if err := viper.UnmarshalKey("postgres", &cfg.PG); err != nil {
-		return err
-	}
-
-	return nil
-}
-
+// LogValue implements slog.LogValuer for safe logging (no secrets)
 func (c *Config) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.String("env", c.App.Environment),
 		slog.Group("http",
-			slog.String("http_address", c.HTTP.Host+":"+c.HTTP.Port),
+			slog.String("address", c.HTTP.Host+":"+c.HTTP.Port),
 			slog.Duration("read_timeout", c.HTTP.ReadTimeout),
 			slog.Duration("write_timeout", c.HTTP.WriteTimeout),
-			slog.Int("maxHeaderMegabytes", c.HTTP.MaxHeaderMegabytes),
+			slog.Int("max_header_megabytes", c.HTTP.MaxHeaderMegabytes),
 		),
 		slog.Group("postgres",
 			slog.String("address", c.PG.Host+":"+c.PG.Port),
+			slog.String("database", c.PG.DBName),
+			slog.String("user", c.PG.User),
+			// Password intentionally omitted!
 			slog.String("ssl_mode", c.PG.SSLMode),
 			slog.Duration("connect_timeout", c.PG.ConnectTimeout),
 			slog.Int("max_conns", c.PG.MaxConns),
 			slog.Int("min_conns", c.PG.MinConns),
 			slog.Duration("max_conn_lifetime", c.PG.MaxConnLifeTime),
-			slog.Duration("max_conn_idletime", c.PG.MaxConnIdleTime),
+			slog.Duration("max_conn_idle_time", c.PG.MaxConnIdleTime),
 		),
 	)
 }
