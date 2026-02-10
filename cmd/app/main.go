@@ -25,6 +25,12 @@ const (
 	shutdownTimeout = 5 * time.Second
 )
 
+// @title           Subscription API
+// @version         1.0
+// @description     API для управления подписками пользователей
+
+// @host      localhost:8080
+// @BasePath  /
 func main() {
 	if err := run(); err != nil {
 		slog.Error("application failed", "error", err)
@@ -61,6 +67,8 @@ func run() error {
 
 	// Router
 	mux := http.NewServeMux()
+
+	// Handler
 	handler.New(mux, biz)
 
 	// Server

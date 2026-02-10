@@ -13,7 +13,7 @@ import (
 
 // ErrorResponse ответ с ошибкой
 type ErrorResponse struct {
-	Error string `json:"error" example:"subscription not found"`
+	Error string `json:"error" example:"error"`
 }
 
 func (h *Handler) respondJSON(w http.ResponseWriter, status int, data interface{}) {
