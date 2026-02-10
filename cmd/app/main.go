@@ -17,8 +17,6 @@ import (
 	httpserver "github.com/Krokozabra213/effective_mobile/internal/server/http"
 	"github.com/Krokozabra213/effective_mobile/pkg/logger"
 	pgxclient "github.com/Krokozabra213/effective_mobile/pkg/pgx-client"
-
-
 )
 
 const (
@@ -70,8 +68,7 @@ func run() error {
 	// Router
 	mux := http.NewServeMux()
 
-	// Swagger endpoint
-
+	// Handler
 	handler.New(mux, biz)
 
 	// Server

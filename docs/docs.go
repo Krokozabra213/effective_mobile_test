@@ -389,7 +389,7 @@ const docTemplate = `{
             "properties": {
                 "error": {
                     "type": "string",
-                    "example": "subscription not found"
+                    "example": "error"
                 }
             }
         },

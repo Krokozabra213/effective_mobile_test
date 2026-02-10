@@ -21,7 +21,7 @@ definitions:
   handler.ErrorResponse:
     properties:
       error:
-        example: subscription not found
+        example: error
         type: string
     type: object
   handler.ListSubscriptionsResponse:
